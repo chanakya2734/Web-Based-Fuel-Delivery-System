@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Booking Manager</title>
+    <style>
+        .fuel-booking-container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="mt-4">Fuel Booking Manager</h2>
+
+        {% if bookings %}
+            <div class="fuel-booking-container">
+                <h3>Fuel Booking Information:</h3>
+                <ul>
+                    {% for booking in bookings %}
+                        <li>
+                            Fuel Amount: {{ booking.fuelAmount }} Liters<br>
+                            Fuel Type: {{ booking.fuelType }}<br>
+                            User Location: ({{ booking.userLocationLat }}, {{ booking.userLocationLng }})<br>
+                            Petrol Bunk Location: ({{ booking.petrolBunkLocationLat }}, {{ booking.petrolBunkLocationLng }})<br>
+                            {% if booking.status == 'Pending' %}
+                                <form action="/accept_booking/{{ booking.id }}" method="post">
+                                    <button type="submit" class="btn btn-success">Accept</button>
+                                </form>
+                            {% else %}
+                                Order Status: {{ booking.status }}
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% else %}
+            <div class="mt-4">
+                <p>No fuel booking information available.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Booking System - Customer</title>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+        .popup {
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            font-size: 20px;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 2px solid green;
+            padding: 20px;
+            z-index: 9999; 
+            display: none;
+            border-radius: 10px;
+        }
+        .tick-icon {
+            color: green;
+            font-size: 50px;
+            margin-right: 10px;
+            border-radius: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Fuel Booking System - Customer</h2>
+
+    <div id="map"></div>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Booking ID</th>
+                <th>Order Status</th>
+                <th>Fuel Type</th>
+                <th>Fuel Amount</th>
+                <th>Booked Timestamp</th>
+                <th>Delivered Timestamp</th>
+                <th>Delivery Status</th>
+            </tr>
+        </thead>
+        <tbody id="bookingDetails">
+        </tbody>
+    </table>
+
+    <div id="popupMessage" class="popup">
+        <span class="tick-icon">&#10004;</span>
+        <span id="deliveryMessage"></span><br>
+        <span id="deliveryTimestamp"></span>
+    </div>
+
+    <script>
+        let map;
+        let selectedLocation = null;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 0, lng: 0 },
+                zoom: 14
+            });
+
+            getLocation();
+        }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function showPosition(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            map.setCenter({ lat: latitude, lng: longitude });
+
+            if (selectedLocation) {
+                selectedLocation.setMap(null);
+            }
+
+            selectedLocation = new google.maps.Marker({
+                position: { lat: latitude, lng: longitude },
+                map: map,
+                title: "Your Location"
+            });
+
+            google.maps.event.addListener(map, 'click', function (event) {
+                const place = {
+                    geometry: {
+                        location: event.latLng
+                    },
+                    name: "User Selected Petrol Bunk"
+                };
+                openDialog(place);
+            });
+        }
+
+        function openDialog(place) {
+            let fuelTypeSelect = prompt("Select fuel type:", "petrol");
+            let fuelAmount = prompt("Enter fuel amount (in liters):");
+
+            if (fuelAmount !== null && fuelTypeSelect !== null) {
+                $.ajax({
+                    type: "POST",
+                    url: "/save_booking_info",
+                    contentType: "application/json; charset=utf-8",
+                    data: JSON.stringify({
+                        fuelAmount: fuelAmount,
+                        fuelType: fuelTypeSelect,
+                        userLocation: {
+                            lat: selectedLocation.getPosition().lat(),
+                            lng: selectedLocation.getPosition().lng()
+                        },
+                        petrolBunkLocation: {
+                            lat: place.geometry.location.lat(),
+                            lng: place.geometry.location.lng()
+                        }
+                    }),
+                    success: function (response) {
+                        alert("Fuel booking successful!");
+                        $('#map').hide();
+                    },
+                });
+            }
+        }
+
+        function fetchBookingDetails() {
+            fetch('/fetch_booking_details')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('bookingDetails').innerHTML = data;
+
+                    const deliveryStatusElements = document.querySelectorAll('.delivery-status');
+                    deliveryStatusElements.forEach(element => {
+                        const deliveryStatus = element.innerText.trim();
+                        if (deliveryStatus === "Delivered") {
+                            const dTimestamp = document.querySelector('.delivery-time').innerText;
+                            showPopupMessage(dTimestamp);
+                        }
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        fetchBookingDetails();
+        setInterval(fetchBookingDetails, 5000);
+
+function showPopupMessage(timestamp) {
+    const popupMessage = document.getElementById('popupMessage');
+    const deliveryMessage = document.getElementById('deliveryMessage');
+    const deliveryTimestamp = document.getElementById('deliveryTimestamp');
+    const deliveredTime = timestamp;
+    
+    deliveryMessage.innerHTML = `<strong>SUCCESSFULLY FUEL DELIVERED.</strong><br>Delivered Date: ${deliveredTime}`;
+    
+    popupMessage.style.display = 'block';
+}
+
+    </script>
+
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDyBCt8bOtRd6soFbrkEKqzfA_tqDbv8xM&callback=initMap&libraries=places">
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+</body>
+</html>

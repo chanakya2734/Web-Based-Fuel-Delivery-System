@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Tracking</title>
+</head>
+<body>
+    <h2>Delivery Tracking</h2>
+
+    <div id="map" style="height: 400px; width: 100%;"></div>
+
+    <button id="deliveryButton">Mark as Delivered</button>
+
+    <script>
+        let userLat = parseFloat("{{ bookings[0]['userLocationLat'] }}");
+        let userLng = parseFloat("{{ bookings[0]['userLocationLng'] }}");
+        let bunkLat = parseFloat("{{ bookings[0]['petrolBunkLocationLat'] }}");
+        let bunkLng = parseFloat("{{ bookings[0]['petrolBunkLocationLng'] }}");
+        let bookingId = "{{ bookings[0]['id'] }}";
+        let map;
+        let deliveryBoyMarker;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: userLat, lng: userLng },
+                zoom: 12
+            });
+
+            addMarker(userLat, userLng, 'User Location');
+            addMarker(bunkLat, bunkLng, 'Petrol Bunk');
+
+            trackDelivery();
+        }
+
+        function addMarker(lat, lng, title) {
+            new google.maps.Marker({
+                position: { lat: lat, lng: lng },
+                map: map,
+                title: title
+            });
+        }
+
+        function trackDelivery() {
+            deliveryBoyMarker = new google.maps.Marker({
+                position: { lat: userLat, lng: userLng },
+                map: map,
+                title: 'Delivery Boy'
+            });
+        }
+
+        document.getElementById('deliveryButton').addEventListener('click', function() {
+            markAsDelivered();
+        });
+
+        function markAsDelivered() {
+            fetch('/update_delivery_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    bookingId: bookingId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                alert('Delivery marked as delivered.');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to mark delivery as delivered.');
+            });
+        }
+    </script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDyBCt8bOtRd6soFbrkEKqzfA_tqDbv8xM&callback=initMap" async defer></script>
+</body>
+</html>

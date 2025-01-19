@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Delivery System - Login</title>
+    <link rel="text" href="signup.html">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url({{path}}) no-repeat center center fixed;
+            background-size:cover;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .login-container {
+            width: 300px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-form {
+            display: none;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Fuel Delivery System</h2>
+        <label for="userType">Login as:</label>
+        <select id="userType" onchange="showForm()">
+            <option >Select</option>
+            <option value="manager">Manager</option>
+            <option value="customer">Customer</option>
+            <option value="deliveryBoy">Delivery Boy</option>
+        </select>
+        <br><br>
+        <div id="managerForm" class="login-form">
+            <form action="/manager" method="post">
+                <label>Manager Username:</label>
+                <input type="text" name="Username" required>
+                <label>Manager Password:</label>
+                <input type="password" name="Password" required>
+                <button type="submit">Login as Manager</button>
+            </form>
+        </div>
+
+        <div id="customerForm" class="login-form">
+            <form action="/customer" method="post">
+                <label>Customer Username:</label>
+                <input type="text" name="Username" required>
+                <label>Customer Password:</label>
+                <input type="password"  name="Password" required>
+                <button type="submit">Login as Customer</button>
+            </form>
+        </div>
+
+        <div id="deliveryBoyForm" class="login-form">
+            <form action="/delivery" method="post">
+                <label>Delivery Boy Username:</label>
+                <input type="text" name="Username" required>
+                <label>Delivery Boy Password:</label>
+                <input type="password" name="Password" required>
+                <button type="submit">Login as Delivery Boy</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showForm() {
+            var userType = document.getElementById("userType").value;
+            var forms = document.getElementsByClassName("login-form");
+            for (var i = 0; i < forms.length; i++) {
+                forms[i].style.display = "none";
+            }
+            document.getElementById(userType + "Form").style.display = "block";
+        }
+    </script>
+</body>
+</html>
