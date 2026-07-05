@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuelDash — Delivery Tracking</title>
+    <meta name="description" content="Track and manage fuel delivery routes with real-time map visualization.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        *, *::before, *::after {
+            margin: 0; padding: 0; box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 30%, #16213e 60%, #0f0f1a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        /* ─── Navbar ─── */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .nav-brand .logo {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #ff9800, #ff5722);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+
+        .nav-brand h2 {
+            font-size: 18px; font-weight: 700; color: #fff;
+        }
+
+        .nav-badge {
+            padding: 6px 14px;
+            background: rgba(52,211,153,0.12);
+            border: 1px solid rgba(52,211,153,0.25);
+            border-radius: 20px;
+            font-size: 12px; font-weight: 500; color: #34d399;
+        }
+
+        /* ─── Layout ─── */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+            padding: 24px 32px;
+            max-width: 1400px; margin: 0 auto;
+            min-height: calc(100vh - 70px);
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ─── Map Card ─── */
+        .map-card {
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .card-header h3 {
+            font-size: 16px; font-weight: 600; color: #fff;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .live-indicator {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11px; font-weight: 500; color: #34d399;
+        }
+
+        .live-dot {
+            width: 8px; height: 8px;
+            background: #34d399;
+            border-radius: 50%;
+            animation: livePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(52,211,153,0); }
+        }
+
+        #map {
+            height: calc(100vh - 200px);
+            min-height: 400px;
+            width: 100%;
+        }
+
+        .leaflet-container { background: #1a1a2e; }
+
+        /* ─── Info Panel ─── */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeInUp 0.6s ease-out 0.15s both;
+        }
+
+        .info-card {
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 24px;
+        }
+
+        .info-card h4 {
+            font-size: 14px; font-weight: 600; color: #fff;
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        /* ─── Detail Rows ─── */
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .detail-row:last-child { border-bottom: none; }
+
+        .detail-row .label {
+            font-size: 12px; font-weight: 500;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .detail-row .value {
+            font-size: 13px; font-weight: 600;
+            color: #fff;
+            text-align: right;
+        }
+
+        .detail-row .value.coords {
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* ─── Badges ─── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px; font-weight: 600;
+        }
+
+        .badge--pending {
+            background: rgba(251,191,36,0.12); color: #fbbf24;
+            border: 1px solid rgba(251,191,36,0.25);
+        }
+
+        .badge--accepted {
+            background: rgba(96,165,250,0.12); color: #60a5fa;
+            border: 1px solid rgba(96,165,250,0.25);
+        }
+
+        .badge--delivered {
+            background: rgba(52,211,153,0.12); color: #34d399;
+            border: 1px solid rgba(52,211,153,0.25);
+        }
+
+        .badge--not-delivered {
+            background: rgba(239,68,68,0.10); color: #f87171;
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+
+        /* ─── Deliver Button ─── */
+        .deliver-btn {
+            width: 100%; padding: 16px;
+            background: linear-gradient(135deg, #34d399, #059669);
+            border: none; border-radius: 14px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px; font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative; overflow: hidden;
+            letter-spacing: 0.3px;
+        }
+
+        .deliver-btn::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        .deliver-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(52,211,153,0.35);
+        }
+
+        .deliver-btn:active { transform: translateY(0); }
+
+        .deliver-btn:disabled {
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.3);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .deliver-btn:disabled::before { display: none; }
+
+        /* ─── Success State ─── */
+        .success-msg {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            background: rgba(52,211,153,0.08);
+            border: 1px solid rgba(52,211,153,0.2);
+            border-radius: 14px;
+        }
+
+        .success-msg.active { display: block; animation: fadeInUp 0.4s ease; }
+
+        .success-msg .check {
+            font-size: 36px; margin-bottom: 8px;
+        }
+
+        .success-msg h4 {
+            font-size: 16px; color: #34d399; margin-bottom: 4px;
+        }
+
+        .success-msg p {
+            font-size: 12px; color: rgba(255,255,255,0.4);
+        }
+
+        /* ─── Empty State ─── */
+        .empty-state {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 48px 24px;
+            text-align: center;
+            min-height: 300px;
+        }
+
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state h3 { font-size: 18px; color: #fff; margin-bottom: 8px; }
+        .empty-state p { font-size: 14px; color: rgba(255,255,255,0.3); }
+
+        /* ─── Animations ─── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        @media (max-width: 768px) {
+            .main-content { padding: 16px; gap: 16px; }
+            .navbar { padding: 12px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="logo">⛽</div>
+            <h2>FuelDash</h2>
+        </div>
+        <div class="nav-badge">🚚 Delivery Partner</div>
+    </nav>
+
+    {% if bookings and bookings|length > 0 %}
+    <div class="main-content">
+
+        <!-- Map -->
+        <div class="map-card">
+            <div class="card-header">
+                <h3>🗺️ Delivery Route</h3>
+                <div class="live-indicator">
+                    <span class="live-dot"></span> LIVE
+                </div>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel">
+
+            <!-- Order Info -->
+            <div class="info-card">
+                <h4>📦 Order Details</h4>
+                <div class="detail-row">
+                    <span class="label">Order ID</span>
+                    <span class="value">#{{ bookings[0]['id'] }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Fuel Type</span>
+                    <span class="value">{{ bookings[0]['fuelType'] }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Amount</span>
+                    <span class="value">{{ bookings[0]['fuelAmount'] }} Liters</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Order Status</span>
+                    <span class="value">
+                        {% if bookings[0]['status'] == 'Pending' %}
+                            <span class="badge badge--pending">⏳ Pending</span>
+                        {% elif bookings[0]['status'] == 'Accepted' %}
+                            <span class="badge badge--accepted">✅ Accepted</span>
+                        {% else %}
+                            <span class="badge badge--delivered">🚚 Delivered</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Delivery Status</span>
+                    <span class="value">
+                        {% if bookings[0]['delivered'] == 'Delivered' %}
+                            <span class="badge badge--delivered">✓ Delivered</span>
+                        {% else %}
+                            <span class="badge badge--not-delivered">⏸ Pending</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Locations -->
+            <div class="info-card">
+                <h4>📍 Locations</h4>
+                <div class="detail-row">
+                    <span class="label">Customer</span>
+                    <span class="value coords">{{ bookings[0]['userLocationLat'] }}, {{ bookings[0]['userLocationLng'] }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Petrol Bunk</span>
+                    <span class="value coords">{{ bookings[0]['petrolBunkLocationLat'] }}, {{ bookings[0]['petrolBunkLocationLng'] }}</span>
+                </div>
+            </div>
+
+            <!-- Action -->
+            <div class="info-card">
+                <button class="deliver-btn" id="deliveryButton" onclick="markAsDelivered()">
+                    🚚  Mark as Delivered
+                </button>
+                <div class="success-msg" id="successMsg">
+                    <div class="check">✅</div>
+                    <h4>Delivery Complete!</h4>
+                    <p>Status has been updated successfully.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state" style="min-height: calc(100vh - 70px);">
+        <div class="icon">📭</div>
+        <h3>No Active Deliveries</h3>
+        <p>When a booking is assigned to you, it will appear here with route details.</p>
+    </div>
+    {% endif %}
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        {% if bookings and bookings|length > 0 %}
+        const userLat = parseFloat("{{ bookings[0]['userLocationLat'] }}");
+        const userLng = parseFloat("{{ bookings[0]['userLocationLng'] }}");
+        const bunkLat = parseFloat("{{ bookings[0]['petrolBunkLocationLat'] }}");
+        const bunkLng = parseFloat("{{ bookings[0]['petrolBunkLocationLng'] }}");
+        const bookingId = "{{ bookings[0]['id'] }}";
+
+        let map;
+
+        function initMap() {
+            // Center map between the two points
+            const centerLat = (userLat + bunkLat) / 2;
+            const centerLng = (userLng + bunkLng) / 2;
+
+            map = L.map('map', {
+                center: [centerLat, centerLng],
+                zoom: 13,
+                zoomControl: true
+            });
+
+            // Dark tile layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap & CartoDB',
+                maxZoom: 19
+            }).addTo(map);
+
+            // User marker (orange)
+            const userIcon = L.divIcon({
+                html: '<div style="width:16px;height:16px;background:#ff9800;border-radius:50%;border:3px solid #fff;box-shadow:0 0 14px rgba(255,152,0,0.6);"></div>',
+                className: '',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            L.marker([userLat, userLng], { icon: userIcon })
+                .addTo(map)
+                .bindPopup('<b>📍 Customer Location</b>');
+
+            // Bunk marker (green)
+            const bunkIcon = L.divIcon({
+                html: '<div style="width:16px;height:16px;background:#34d399;border-radius:50%;border:3px solid #fff;box-shadow:0 0 14px rgba(52,211,153,0.6);"></div>',
+                className: '',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            L.marker([bunkLat, bunkLng], { icon: bunkIcon })
+                .addTo(map)
+                .bindPopup('<b>⛽ Petrol Bunk</b>');
+
+            // Route line
+            L.polyline([
+                [bunkLat, bunkLng],
+                [userLat, userLng]
+            ], {
+                color: '#ff9800',
+                weight: 3,
+                dashArray: '10, 8',
+                opacity: 0.8
+            }).addTo(map);
+
+            // Fit bounds to show both markers
+            const bounds = L.latLngBounds([
+                [userLat, userLng],
+                [bunkLat, bunkLng]
+            ]);
+            map.fitBounds(bounds.pad(0.3));
+        }
+
+        function markAsDelivered() {
+            const btn = document.getElementById('deliveryButton');
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+
+            fetch('/update_delivery_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookingId: bookingId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.style.display = 'none';
+                document.getElementById('successMsg').classList.add('active');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                btn.disabled = false;
+                btn.textContent = '🚚  Mark as Delivered';
+                alert('Failed to update delivery status. Please try again.');
+            });
+        }
+
+        // Initialize
+        initMap();
+        {% endif %}
+    </script>
+
+</body>
+</html>

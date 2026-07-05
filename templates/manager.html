@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuelDash — Manager Dashboard</title>
+    <meta name="description" content="Manage fuel delivery bookings, accept orders, and track delivery status.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0; padding: 0; box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 30%, #16213e 60%, #0f0f1a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        /* ─── Navbar ─── */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .nav-brand .logo {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #ff9800, #ff5722);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+
+        .nav-brand h2 {
+            font-size: 18px; font-weight: 700; color: #fff;
+        }
+
+        .nav-badge {
+            padding: 6px 14px;
+            background: rgba(139,92,246,0.12);
+            border: 1px solid rgba(139,92,246,0.25);
+            border-radius: 20px;
+            font-size: 12px; font-weight: 500; color: #a78bfa;
+        }
+
+        /* ─── Stats Bar ─── */
+        .stats-bar {
+            display: flex; gap: 16px;
+            padding: 24px 32px;
+            max-width: 1400px; margin: 0 auto;
+            overflow-x: auto;
+        }
+
+        .stat-card {
+            flex: 1; min-width: 160px;
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 20px 22px;
+            animation: fadeInUp 0.5s ease-out both;
+        }
+
+        .stat-card:nth-child(2) { animation-delay: 0.1s; }
+        .stat-card:nth-child(3) { animation-delay: 0.2s; }
+        .stat-card:nth-child(4) { animation-delay: 0.3s; }
+
+        .stat-card .stat-label {
+            font-size: 11px; font-weight: 600;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 28px; font-weight: 800; color: #fff;
+        }
+
+        .stat-card .stat-icon {
+            font-size: 16px; margin-right: 6px;
+        }
+
+        .stat-card.pending .stat-value { color: #fbbf24; }
+        .stat-card.accepted .stat-value { color: #60a5fa; }
+        .stat-card.delivered .stat-value { color: #34d399; }
+
+        /* ─── Section ─── */
+        .section {
+            padding: 0 32px 32px;
+            max-width: 1400px; margin: 0 auto;
+        }
+
+        .section-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-header h3 {
+            font-size: 18px; font-weight: 700; color: #fff;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .section-header .refresh-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: rgba(255,255,255,0.5);
+            font-family: 'Inter', sans-serif;
+            font-size: 12px; font-weight: 500;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+
+        .section-header .refresh-btn:hover {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+        }
+
+        /* ─── Booking Cards Grid ─── */
+        .bookings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+        }
+
+        .booking-card {
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.5s ease-out both;
+        }
+
+        .booking-card:hover {
+            border-color: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        .booking-card-head {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .booking-id {
+            font-size: 13px; font-weight: 600;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .booking-id span {
+            color: #fff; font-weight: 700;
+        }
+
+        /* ─── Badges ─── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px; font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .badge--pending {
+            background: rgba(251,191,36,0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(251,191,36,0.25);
+        }
+
+        .badge--accepted {
+            background: rgba(96,165,250,0.12);
+            color: #60a5fa;
+            border: 1px solid rgba(96,165,250,0.25);
+        }
+
+        .badge--delivered {
+            background: rgba(52,211,153,0.12);
+            color: #34d399;
+            border: 1px solid rgba(52,211,153,0.25);
+        }
+
+        /* ─── Booking Details ─── */
+        .booking-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+
+        .detail-item .label {
+            font-size: 10px; font-weight: 600;
+            color: rgba(255,255,255,0.35);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 4px;
+        }
+
+        .detail-item .value {
+            font-size: 14px; font-weight: 600;
+            color: #fff;
+        }
+
+        .detail-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .detail-item .value.coords {
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* ─── Accept Button ─── */
+        .accept-btn {
+            width: 100%; padding: 13px;
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border: none; border-radius: 12px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px; font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative; overflow: hidden;
+        }
+
+        .accept-btn::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        .accept-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255,152,0,0.35);
+        }
+
+        .status-display {
+            text-align: center; padding: 12px;
+            background: rgba(96,165,250,0.06);
+            border: 1px solid rgba(96,165,250,0.15);
+            border-radius: 12px;
+            font-size: 13px; font-weight: 500;
+            color: #60a5fa;
+        }
+
+        /* ─── Empty State ─── */
+        .empty-state {
+            text-align: center;
+            padding: 64px 24px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            border: 1px dashed rgba(255,255,255,0.1);
+        }
+
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state h3 { font-size: 18px; color: #fff; margin-bottom: 8px; }
+        .empty-state p { font-size: 14px; color: rgba(255,255,255,0.3); }
+
+        /* ─── Animations ─── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 768px) {
+            .stats-bar { flex-direction: column; padding: 16px; }
+            .section { padding: 0 16px 24px; }
+            .bookings-grid { grid-template-columns: 1fr; }
+            .navbar { padding: 12px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="logo">⛽</div>
+            <h2>FuelDash</h2>
+        </div>
+        <div class="nav-badge">👔 Manager Dashboard</div>
+    </nav>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-label">Total Bookings</div>
+            <div class="stat-value">
+                <span class="stat-icon">📦</span>
+                {{ stats['total'] if stats else 0 }}
+            </div>
+        </div>
+        <div class="stat-card pending">
+            <div class="stat-label">Pending</div>
+            <div class="stat-value">
+                <span class="stat-icon">⏳</span>
+                {{ stats['pending'] if stats else 0 }}
+            </div>
+        </div>
+        <div class="stat-card accepted">
+            <div class="stat-label">Accepted</div>
+            <div class="stat-value">
+                <span class="stat-icon">✅</span>
+                {{ stats['accepted'] if stats else 0 }}
+            </div>
+        </div>
+        <div class="stat-card delivered">
+            <div class="stat-label">Delivered</div>
+            <div class="stat-value">
+                <span class="stat-icon">🚚</span>
+                {{ stats['delivered'] if stats else 0 }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookings Section -->
+    <div class="section">
+        <div class="section-header">
+            <h3>📋 All Bookings</h3>
+        </div>
+
+        {% if bookings %}
+        <div class="bookings-grid">
+            {% for booking in bookings %}
+            <div class="booking-card">
+                <div class="booking-card-head">
+                    <div class="booking-id">Order #<span>{{ booking['id'] }}</span></div>
+                    {% if booking['delivered'] == 'Delivered' %}
+                        <span class="badge badge--delivered">🚚 Delivered</span>
+                    {% elif booking['status'] == 'Accepted' %}
+                        <span class="badge badge--accepted">✅ Accepted</span>
+                    {% else %}
+                        <span class="badge badge--pending">⏳ Pending</span>
+                    {% endif %}
+                </div>
+
+                <div class="booking-details">
+                    <div class="detail-item">
+                        <div class="label">Fuel Type</div>
+                        <div class="value">{{ booking['fuelType'] }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">Amount</div>
+                        <div class="value">{{ booking['fuelAmount'] }} L</div>
+                    </div>
+                    <div class="detail-item full-width">
+                        <div class="label">User Location</div>
+                        <div class="value coords">{{ booking['userLocationLat'] }}, {{ booking['userLocationLng'] }}</div>
+                    </div>
+                    <div class="detail-item full-width">
+                        <div class="label">Petrol Bunk</div>
+                        <div class="value coords">{{ booking['petrolBunkLocationLat'] }}, {{ booking['petrolBunkLocationLng'] }}</div>
+                    </div>
+                </div>
+
+                {% if booking['status'] == 'Pending' %}
+                <form action="/accept_booking/{{ booking['id'] }}" method="post">
+                    <button type="submit" class="accept-btn">Accept Order</button>
+                </form>
+                {% else %}
+                <div class="status-display">
+                    Order {{ booking['status'] }} {% if booking['delivered'] == 'Delivered' %} · Fuel Delivered{% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon">📭</div>
+            <h3>No Bookings Yet</h3>
+            <p>New fuel delivery requests from customers will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</body>
+</html>
