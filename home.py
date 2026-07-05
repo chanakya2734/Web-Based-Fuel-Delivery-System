@@ -5,8 +5,11 @@ import os
 
 app = Flask(__name__)
 
-# Database file path (in same directory as home.py)
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fuel.db')
+# Database file path (writeable /tmp directory on Vercel, local file otherwise)
+if os.environ.get('VERCEL'):
+    DB_PATH = '/tmp/fuel.db'
+else:
+    DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fuel.db')
 
 
 def setup_sqlite_db():
